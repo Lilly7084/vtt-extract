@@ -8,6 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * @author Wesley Mays (WMays287)
+ * @version 2.0
+ * @since 2.0
+ */
 public class FileProcessor {
 	
 	public static final String STAMP_REGEX = "(\\d{2}:)*\\d{2}\\.\\d{3}";
@@ -16,7 +21,7 @@ public class FileProcessor {
 	private String videoID;
 	private String[] filters;
 	private BufferedReader reader;
-	private LineProcessor processor;
+	private LineProcessor lp;
 	
 	public FileProcessor(File source, String videoID, String[] filters) {
 		try {
@@ -37,16 +42,25 @@ public class FileProcessor {
 		}
 	}
 	
+	/**
+	 * Process the loaded file
+	 * @param results List to hold search locations
+	 * @return Number of new items added to 'results'
+	 * @throws IOException
+	 */
 	public int processFile(List<String> results) throws IOException {
 		
 		// Skip to the first span header, to ignore file header
-		String spanHeader = readSpanHeader();
+		String spanHeader = null;
+		while (reader.ready() && !SPAN_REGEX.matcher(spanHeader = reader.readLine()).find()) {
+			// Do nothing
+		}
 		
 		// Process the span header, using it as the initial time tag
 		String timeTag = spanHeader.split(" ")[0];
 		
 		// Set up the line processor
-		processor = new LineProcessor(STAMP_REGEX, timeTag);
+		lp = new LineProcessor(STAMP_REGEX, timeTag);
 		
 		// Set up a buffer to hold all cues
 		List<String[]> cues = new ArrayList<String[]>();
@@ -60,106 +74,32 @@ public class FileProcessor {
 			}
 			
 			// If it's a span header, update time stamp accordingly
-			if (isSpanHeader(line)) {
-				processor.setTimestamp(line.split(" ")[0]);
+			if (SPAN_REGEX.matcher(line).find()) {
+				lp.setTimestamp(line.split(" ")[0]);
 				continue;
 			}
 			
 			// Get the processor ready for this text line
-			processor.resetFSM(cues);
+			lp.resetFSM(cues);
 			
 			// Let the processor run for every character
 			// Undocumented feature of String.split()?
 			// Empty regex splits input into individual characters
 			for (String chr : line.split("")) {
-				processor.handleChar(chr, cues);
+				lp.handleChar(chr, cues);
 			}
 			
 		}
 		
-		// Set up filter registers
-		String[][] filterTerms = new String[filters.length][];
-		int[] filterProgress = new int[filters.length];
-		String[] filterStamps = new String[filters.length];
-		for (int i = 0; i < filters.length; i++) {
-			filterTerms[i] = filters[i].toLowerCase().split(" ");
-			filterProgress[i] = 0;
-			filterStamps[i] = "00:00:00.000";
-		}
-		
-		int newResults = 0;
-		
-		// Iterate over accumulated cues
+		// Let a separate script process the cues
+		CueProcessor cp = new CueProcessor(videoID, filters);
 		for (String[] cue : cues) {
-			
-			// Get current cue into checkable format
-			String currentCue = cue[1].toLowerCase();
-			
-			// For each filter
-			for (int i = 0; i < filters.length; i++) {
-				
-				// If the current cue is equivalent to the next item in the filter
-				if (currentCue.equals(filterTerms[i][filterProgress[i]])) {
-					
-					// If the filter hasn't started yet
-					if (filterProgress[i] == 0) {
-						
-						// Update filter stamp
-						filterStamps[i] = cue[0];
-						
-					}
-					
-					// Update filter progress
-					filterProgress[i]++;
-					
-					// If the filter is now done
-					if (filterProgress[i] >= filterTerms[i].length) {
-						
-						// Reset filter progress
-						filterProgress[i] = 0;
-						
-						// Push data to results buffer
-						String result = "Video ID: ";
-						result += videoID;
-						result += ", time stamp: ";
-						result += filterStamps[i];
-						result += ", filter: ";
-						result += i;
-						result += " (\"";
-						result += filters[i];
-						result += "\")";
-						results.add(result);
-						
-						// Update new result count
-						newResults++;
-						
-					}
-					
-				}
-				
-			}
-			
+			cp.processCue(cue[0], cue[1].toLowerCase(), results);
 		}
 		
-		return newResults;
+		// Tell Main how many new results we got
+		return cp.getNewResults();
 		
-	}
-	
-	private String readSpanHeader() throws IOException {
-		
-		String foo = null;
-		
-		// Skip ahead until the next span header
-		while (reader.ready() && !isSpanHeader(foo = reader.readLine())) {
-			// Do nothing
-		}
-		
-		return foo;
-		
-	}
-	
-	private boolean isSpanHeader(String data) {
-		return SPAN_REGEX.matcher(data).find();
 	}
 
 }
