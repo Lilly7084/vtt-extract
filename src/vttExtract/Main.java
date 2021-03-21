@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * @author Wesley Mays (WMays287)
- * @version 2.1
+ * @version 2.2
  * @since 1.0
  */
 public class Main {
@@ -18,33 +18,36 @@ public class Main {
 		
 		long startTime = System.currentTimeMillis();
 		
-		List<String> results = new ArrayList<String>();
+		List<String> triggers = new ArrayList<String>();
 		
 		// Handle all files in work directory
 		String workDir = System.getProperty("user.dir");
 		File[] inputs = new File(workDir).listFiles();
 		for (File input : inputs) {
-			processFile(input, args, results);
+			processFile(input, args, triggers);
 		}
 		
 		// De-duplicate results
-		System.out.print("\nDeduplicating results...");
-		Deduplicator dd = new Deduplicator(results);
-		results = dd.deduplicate();
-		System.out.println(" Done!");
+		System.out.println();
+		System.out.print("Deduplicating triggers...");
+		int oldTriggerCount = triggers.size();
+		Deduplicator dd = new Deduplicator(triggers);
+		dd.run();
+		triggers = dd.getData();
+		System.out.println(" Done, " + triggers.size() + " remaining triggers out of " + oldTriggerCount + ".");
 		
 		// Print results to terminal and output file
-		System.out.println("\nFilter results:");
+		System.out.print("Writing triggers to file...");
 		BufferedWriter writer = new BufferedWriter(new FileWriter("results.txt"));
-		for (String result : results) {
+		for (String result : triggers) {
 			writer.write(result + "\n");
 			writer.flush();
-			System.out.println("  " + result);
 		}
 		writer.close();
+		System.out.println(" Done.");
 		
 		long duration = Math.round(System.currentTimeMillis() - startTime) / 1000;
-		System.out.println("\nTotal results: " + results.size());
+		System.out.println();
 		System.out.println("Process completed in " + duration + " seconds.");
 		
 	}
@@ -53,10 +56,10 @@ public class Main {
 	 * Handler function for an arbitrary file in work directory
 	 * @param source The file to be processed
 	 * @param filters Array of raw search phrases
-	 * @param results List to hold results
+	 * @param triggers List to hold triggers
 	 * @throws IOException
 	 */
-	public static void processFile(File source, String[] filters, List<String> results) throws IOException {
+	public static void processFile(File source, String[] filters, List<String> triggers) throws IOException {
 		
 		String name = source.getName();
 		
@@ -70,15 +73,15 @@ public class Main {
 			return; // If it has the wrong extension
 		}
 		
+		System.out.print("Processing: " + name + "...");
+		
 		// Get video ID from title (Assuming youtube-dl default name layout)
 		String videoID = name.substring(name.length() - 18, name.length() - 7);
 		
-		System.out.print("Processing caption file: " + videoID + "...");
+		FileProcessor fp = new FileProcessor(source, videoID, filters);
+		fp.processFile(triggers);
 		
-		FileProcessor processor = new FileProcessor(source, videoID, filters);
-		int newResults = processor.processFile(results);
-		
-		System.out.println(" Done, " + newResults + " new results.");
+		System.out.println(" Done, " + fp.getCueCount() + " cues, " + fp.getTriggerCount() + " triggers.");
 		
 	}
 

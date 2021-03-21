@@ -5,10 +5,15 @@ import java.util.regex.Pattern;
 
 /**
  * @author Wesley Mays (WMays287)
- * @version 2.0
+ * @version 2.2
  * @since 2.0
  */
 public class LineProcessor {
+	
+	/**
+	 * Regex used to search for time stamps
+	 */
+	private static final Pattern STAMP_REGEX = Pattern.compile("(\\d{2}:)*\\d{2}\\.\\d{3}");
 	
 	// Buffer values for FSM
 	private String cueBuffer = "";
@@ -22,15 +27,12 @@ public class LineProcessor {
 	private int state = 0;
 	
 	// Buffer and config values for other code
-	private Pattern stampRegex;
 	private String timestamp;
 	
 	/**
-	 * @param stampRegex RegEx used to find time stamps
 	 * @param timestamp Initial time stamp value
 	 */
-	public LineProcessor(String stampRegex, String timestamp) {
-		this.stampRegex = Pattern.compile(stampRegex);
+	public LineProcessor(String timestamp) {
 		this.timestamp = timestamp;
 	}
 	
@@ -93,13 +95,11 @@ public class LineProcessor {
 	
 	/**
 	 * Process a tag
-	 * <p>
-	 * All tag data except for time stamps is destroyed.
 	 * @param tagBuffer Tag buffer to be processed
 	 */
 	private void handleTag(String tagBuffer) {
 		// If the tag is a valid time stamp (Cue time)
-		if (stampRegex.matcher(tagBuffer).find()) {
+		if (STAMP_REGEX.matcher(tagBuffer).find()) {
 			timestamp = tagBuffer;
 		}
 	}

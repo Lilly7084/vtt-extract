@@ -4,22 +4,46 @@ import java.util.List;
 
 /**
  * @author Wesley Mays (WMays287)
- * @version 2.1
+ * @version 2.2
  * @since 2.1
  */
 public class CueProcessor {
 	
+	/**
+	 * The video ID being processed, used for trigger messages
+	 */
 	private String videoID;
-	private int newResults;
+	
+	/**
+	 * How many triggers have been generated
+	 */
+	private int triggerCount;
+	
+	/**
+	 * How many filters are being processed
+	 */
 	private int filterCount;
+	
+	/**
+	 * Search-term chains for each filter
+	 */
 	private String[][] filterTerms;
+	
+	/**
+	 * Progress values for each filter
+	 */
 	private int[] filterProgress;
+	
+	/**
+	 * Time stamps for each filter
+	 */
 	String[] filterStamps;
 	
 	public CueProcessor(String videoID, String[] filters) {
 		
+		// Set up other variables
 		this.videoID = videoID;
-		newResults = 0;
+		triggerCount = 0;
 		filterCount = filters.length;
 		
 		// Set up filter registers
@@ -27,9 +51,16 @@ public class CueProcessor {
 		filterProgress = new int[filterCount];
 		filterStamps = new String[filterCount];
 		for (int i = 0; i < filterCount; i++) {
+			
+			// filterTerms - Search-term chain
 			filterTerms[i] = filters[i].toLowerCase().split(" ");
+			
+			// filterProgress - Progress value
 			filterProgress[i] = 0;
+			
+			// filterStamps - Time stamp
 			filterStamps[i] = "00:00:00.000";
+			
 		}
 		
 	}
@@ -38,9 +69,9 @@ public class CueProcessor {
 	 * Process a cue returned from a LineProcessor
 	 * @param stamp Time stamp of the input cue
 	 * @param cue Data of the input cue
-	 * @param results List to contain search results
+	 * @param triggers List to contain triggers
 	 */
-	public void processCue(String stamp, String cue, List<String> results) {
+	public void processCue(String stamp, String cue, List<String> triggers) {
 		
 		// For each filter
 		for (int i = 0; i < filterCount; i++) {
@@ -66,19 +97,12 @@ public class CueProcessor {
 					filterProgress[i] = 0;
 					
 					// Push data to results buffer
-					String result = "Video ID: ";
-					result += videoID;
-					result += ", time stamp: ";
-					result += filterStamps[i];
-					result += ", filter: ";
-					result += i;
-					result += " (\"";
-					result += reassembleFilter(i);
-					result += "\")";
-					results.add(result);
+					String trigger = "Video " + videoID + ", at " + filterStamps[i];
+					trigger += ", filter " + i + " (\"" + reassembleFilter(i) + "\")";
+					triggers.add(trigger);
 					
-					// Update new result count
-					newResults++;
+					// Update trigger count
+					triggerCount++;
 					
 				}
 				
@@ -89,11 +113,11 @@ public class CueProcessor {
 	}
 	
 	/**
-	 * Get how many results have been generated
+	 * Get how many triggers have been generated
 	 * @return Total generated results
 	 */
-	public int getNewResults() {
-		return newResults;
+	public int getTriggerCount() {
+		return triggerCount;
 	}
 	
 	/**
