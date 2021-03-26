@@ -5,28 +5,17 @@ import java.util.regex.Pattern;
 
 /**
  * @author Wesley Mays (WMays287)
- * @version 2.2
+ * @version 2.3
  * @since 2.0
  */
 public class LineProcessor {
 	
-	/**
-	 * Regex used to search for time stamps
-	 */
 	private static final Pattern STAMP_REGEX = Pattern.compile("(\\d{2}:)*\\d{2}\\.\\d{3}");
 	
 	// Buffer values for FSM
 	private String cueBuffer = "";
 	private String tagBuffer = "";
-	
-	/**
-	 * State value for finite state machine.
-	 * Value 0 = Reading cue,
-	 * value 1 = Reading tag
-	 */
 	private int state = 0;
-	
-	// Buffer and config values for other code
 	private String timestamp;
 	
 	/**

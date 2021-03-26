@@ -5,19 +5,12 @@ import java.util.List;
 
 /**
  * @author Wesley Mays (WMays287)
- * @version 2.2
+ * @version 2.3
  * @since 2.1
  */
 public class Deduplicator {
 	
-	/**
-	 * Buffer containing partially de-duplicated data
-	 */
 	List<String> data;
-	
-	/**
-	 * Current pointer to buffer data
-	 */
 	int index;
 	
 	/**
@@ -84,7 +77,7 @@ public class Deduplicator {
 		int stampCurrent = parseStamp(valueCurrent.substring(22, 33));
 		int stampPeek = parseStamp(valuePeek.substring(22, 33));
 		int stampDelta = Math.abs(stampCurrent - stampPeek);
-		if (stampDelta <= 1500) {
+		if (stampDelta <= 5000) {
 			//data.set(index, "#" + valueCurrent);
 			data.set(index, "");
 			index--;
